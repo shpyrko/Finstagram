@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Select Groups</title>
+</head>
+<body>
+	<form action="/selectGroupsAuth" method="POST">
+    {% for group in groups %}
+		<input type="checkbox" name={{group.groupName}} placeholder={{group.groupName}} /> {{group.groupName}} </br>
+	{% endfor %}
+		<input type="hidden" name="PID" value={{pid}} />
+		<input type="submit" value="Select" />
+	</form>
+</body>
+</html>
