@@ -2,7 +2,6 @@
 from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
 import hashlib
-import blobDB
 
 SALT='cs3083'
 #Initialize the app from Flask
@@ -118,7 +117,7 @@ def post():
     caption = request.form['caption']
     query = 'INSERT INTO Photo (postingDate, filePath, allFollowers, caption, poster) VALUES(current_timestamp, ' \
             '%s, %s, %s, %s)'
-    insertBLOB(filePath, allFollowers, caption, username)
+    cursor.execute(query, (filePath, allFollowers, caption, username))
     conn.commit()
 
     groups_query = "SELECT * FROM BelongTo WHERE username = %s"
