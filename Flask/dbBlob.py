@@ -12,8 +12,7 @@
 
 #######################IMPORTANT##########################
 
-import mysql.connector
-from mysql.connector import Error
+import pymysql.cursors
 
 #####################################################
 # Inserting Images as BLOB data into MySQL Table
@@ -24,45 +23,39 @@ def convertToBinaryData(filename):
     with open(filename, 'rb') as file:
         binaryData = file.read()
     return binaryData
-'''
-def insertBLOB(username, photo):
-    print("Inserting BLOB into photo table")
 
-    username = request.form['username']
-    postingDate = request.form['postingDate']
-    allFollowers = request.form['allFollowers']
-    caption = request.form['caption']
+def insertBLOB(photo, allFollowers, caption, username):
+    print("Inserting BLOB into photo table")
 
     #   Just to clarify since you specify that the table auto increments photoIDs
     #   You do not havy to insert into that column since that will be done for you.
 
     try:
-        connection = mysql.connector.connect(host='localhost',
-                                             database='finstagram',
-                                             user=' ',
-                                             password=' ')
+        connection = pymysql.connect(host='localhost',
+                               port=8889,
+                               user='root',
+                               password='root',
+                               db='finstagram',
+                               charset='utf8mb4',
+                               cursorclass=pymysql.cursors.DictCursor)
 
         cursor = connection.cursor()
         sql_insert_blob_query = """ INSERT INTO Photo
-                          (postingDate, filePath, allFollowers, caption, poster) VALUES (%s,%s,%s,%s,%s)"""
+                          (postingDate, filePath, allFollowers, caption, poster) VALUES (current_timestamp,%s,%s,%s,%s)"""
 
         photo = convertToBinaryData(photo)
 
         # Convert data into tuple format
-        insert_blob_tuple = (postingDate, photo, allFollowers, caption, username)
+        insert_blob_tuple = (photo, allFollowers, caption, username)
         result = cursor.execute(sql_insert_blob_query, insert_blob_tuple)
         connection.commit()
         print("Image and file inserted successfully as a BLOB into Photos table", result)
 
-    except mysql.connector.Error as error:
-        print("Failed inserting BLOB data into MySQL table {}".format(error))
-
     finally:
-        if (connection.is_connected()):
-            cursor.close()
-            connection.close()
-            print("MySQL connection is closed")
-'''
+        cursor.close()
+        connection.close()
+        print("MySQL connection is closed")
+
 ################################################################
 # Retrieving Image and File stored as a BLOB from MySQL Table
 ################################################################
@@ -72,35 +65,30 @@ def write_file(data, filename):
     with open(filename, 'wb') as file:
         file.write(data)
 
-def readBLOB(photoId, photo):
+def readBLOB(photo_id):
     print("Reading BLOB data from Photo table")
 
     try:
-        connection = mysql.connector.connect(host='localhost',
-                                             database='finstagram',
-                                             user=' ',
-                                             password=' ')
+        connection = pymysql.connect(host='localhost',
+                               port=8889,
+                               user='root',
+                               password='root',
+                               db='finstagram',
+                               charset='utf8mb4',
+                               cursorclass=pymysql.cursors.DictCursor)
 
         cursor = connection.cursor()
-        sql_fetch_blob_query = """SELECT photo from Photo where id = %s"""
+        sql_fetch_blob_query = """SELECT photo from Photo where pID = %s"""
 
-        cursor.execute(sql_fetch_blob_query, (photo_id,))
+        cursor.execute(sql_fetch_blob_query, photo_id)
         record = cursor.fetchall()
         for row in record:
-            print("photoID = ", row[0], )
+            print("photoID = ", row[0])
             image = row[1]
             print("Storing photo on disk \n")
-            write_file(image, photo)
-
-    except mysql.connector.Error as error:
-        print("Failed to read BLOB data from MySQL table {}".format(error))
+            write_file(image, "newPhoto")
 
     finally:
-        if (connection.is_connected()):
-            cursor.close()
-            connection.close()
-            print("MySQL connection is closed")
-
-insertBLOB("Kevin", "Path_to_image\images\photo1.png")
-
-readBLOB(photoId, "Path_to_image\my_SQL\query_output\photo1.png")
+        cursor.close()
+        connection.close()
+        print("MySQL connection is closed")
