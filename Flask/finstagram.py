@@ -3,6 +3,11 @@ from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
 import hashlib
 
+# Finished "Adding Friend Groups", "View visible photos"
+#TODO View further photo info
+#TODO Post a photo
+#TODO Manage follows
+
 SALT='cs3083'
 #Initialize the app from Flask
 app = Flask(__name__)
