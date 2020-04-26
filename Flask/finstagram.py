@@ -3,11 +3,11 @@ from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
 import hashlib
 import mysql.connector
+import base64
 from mysql.connector import Error
 
-# Finished "Adding Friend Groups", "View visible photos"
+# Finished "Adding Friend Groups", "View visible photos", "Posting a photo"
 #TODO View further photo info
-#TODO Post a photo
 #TODO Manage follows
 
 SALT='cs3083'
@@ -102,11 +102,14 @@ def registerAuth():
 def home():
     user = session['username']
     cursor = conn.cursor()
-    query = 'SELECT pID, postingDate FROM Photo NATURAL JOIN SharedWith JOIN BelongTo ON ' \
+    query1 = 'SELECT firstName, lastName, pId, filePath, postingDate FROM Photo NATURAL JOIN Person NATURAL JOIN SharedWith JOIN BelongTo ON ' \
             '(BelongTo.groupName = SharedWith.groupName) WHERE BelongTo.username = %s UNION ' \
-            '(SELECT pID, postingDate FROM Photo WHERE poster = %s) ORDER BY postingDate Desc '
-    cursor.execute(query, (user, user))
+            '(SELECT firstName, lastName, pID, filePath, postingDate FROM Photo NATURAL JOIN Person WHERE poster = %s) ORDER BY postingDate Desc '
+    cursor.execute(query1, (user, user))
     data = cursor.fetchall()
+    for photo in data:
+        image = str(base64.b64encode(photo['filePath']).decode('utf-8'))
+        photo['filePath'] = image
     cursor.close()
     return render_template('home.html', username=user, posts=data)
 
@@ -116,6 +119,8 @@ def post():
     username = session['username']
     cursor = conn.cursor()
     filePath = request.form['filePath']
+    blobData = convertToBinaryData(filePath)
+
     getAllFollowers = request.form.get('allFollowers')
     allFollowers = 0
     if getAllFollowers == 'on':
@@ -124,7 +129,7 @@ def post():
     caption = request.form['caption']
     query = 'INSERT INTO Photo (postingDate, filePath, allFollowers, caption, poster) VALUES(current_timestamp, ' \
             '%s, %s, %s, %s)'
-    cursor.execute(query, (filePath, allFollowers, caption, username))
+    cursor.execute(query, (blobData, allFollowers, caption, username))
     conn.commit()
 
     groups_query = "SELECT * FROM BelongTo WHERE username = %s"
@@ -136,7 +141,7 @@ def post():
     pid = pid[0]['LAST_INSERT_ID()']
     cursor.close()
 
-    if allFollowers == 0:
+    if allFollowers == 0 and group_data:
         return render_template('/select_groups.html', groups=group_data, pid=pid)
     else:
         return redirect(url_for("home"))
@@ -222,88 +227,12 @@ def select_groups():
     return redirect(url_for('home'))
 
 
+
 def convertToBinaryData(filename):
     # Convert digital data to binary format
     with open(filename, 'rb') as file:
         binaryData = file.read()
     return binaryData
-
-def insertBLOB(username, photo):
-    print("Inserting BLOB into photo table")
-
-    username = request.form['username']
-    postingDate = request.form['postingDate']
-    allFollowers = request.form['allFollowers']
-    caption = request.form['caption']
-
-    #   Just to clarify since you specify that the table auto increments photoIDs
-    #   You do not havy to insert into that column since that will be done for you.
-
-    try:
-        connection = mysql.connector.connect(host='localhost',
-                                             database='finstagram',
-                                             user=' ',
-                                             password=' ')
-
-        cursor = connection.cursor()
-        sql_insert_blob_query = """ INSERT INTO Photo
-                          (postingDate, filePath, allFollowers, caption, poster) VALUES (%s,%s,%s,%s,%s)"""
-
-        photo = convertToBinaryData(photo)
-
-        # Convert data into tuple format
-        insert_blob_tuple = (postingDate, photo, allFollowers, caption, username)
-        result = cursor.execute(sql_insert_blob_query, insert_blob_tuple)
-        connection.commit()
-        print("Image and file inserted successfully as a BLOB into Photos table", result)
-
-    except mysql.connector.Error as error:
-        print("Failed inserting BLOB data into MySQL table {}".format(error))
-
-    finally:
-        if (connection.is_connected()):
-            cursor.close()
-            connection.close()
-            print("MySQL connection is closed")
-
-################################################################
-# Retrieving Image and File stored as a BLOB from MySQL Table
-################################################################
-
-def write_file(data, filename):
-    # Convert binary data to proper format and write it on Hard Disk
-    with open(filename, 'wb') as file:
-        file.write(data)
-
-def readBLOB(photoId, photo):
-    print("Reading BLOB data from Photo table")
-
-    try:
-        connection = mysql.connector.connect(host='localhost',
-                                             database='finstagram',
-                                             user=' ',
-                                             password=' ')
-
-        cursor = connection.cursor()
-        sql_fetch_blob_query = """SELECT photo from Photo where id = %s"""
-
-        cursor.execute(sql_fetch_blob_query, (photo_id,))
-        record = cursor.fetchall()
-        for row in record:
-            print("photoID = ", row[0], )
-            image = row[1]
-            print("Storing photo on disk \n")
-            write_file(image, photo)
-
-    except mysql.connector.Error as error:
-        print("Failed to read BLOB data from MySQL table {}".format(error))
-
-    finally:
-        if (connection.is_connected()):
-            cursor.close()
-            connection.close()
-            print("MySQL connection is closed")
-
 
 app.secret_key = 'some key that you will never guess'
 #Run the app on localhost port 5000
