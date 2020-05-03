@@ -24,22 +24,17 @@ Here are your posts:
 	<th>Time</th>
 	<th>Post</th>
 	<th>Picture ID</th>
-	<th>Poster</th>>
-	<th>Tagged</th>
-	<th>Reactions</th>
 
 {% for line in posts %}
 	<tr>
 		<td>{{line.postingDate}}</td>
-		<td><img src="data:image/jpeg;base64,{{line.filePath}}" alt="Photo Unavailable"/> </td>
-		<td>{{line.pId}}</td>
-		<td>{{line.firstName}} {{line.lastName}}</td>
-		<td></td>
+		<td><img src="data:image/jpeg;base64,{{line.filePath}}" alt="Photo Unavailable"/></td>
+		<td><a href="/tags_and_reacts/{{line.pId}}">{{line.pId}}</a></td>
 	</tr>
 {% endfor %}
 </table>
 
-<a href="/select_blogger">Select a blogger</a>
+<a href="/manage_follows">Manage Follows</a>
 <br>
 <a href="/logout">Logout</a>
 

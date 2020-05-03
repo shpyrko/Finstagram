@@ -1,0 +1,46 @@
+<html>
+<head>
+</head>
+<body>
+
+<style type="text/css">
+	table, th, td{
+		border: 1px solid black;
+	}
+</style>
+{% for name in poster %}
+    <h1><b>Poster: {{name.firstName}} {{name.lastName}}</b></h1>
+
+{% endfor %}
+<h1><b>Tagged Users:</b></h1>
+{% for user in tag_data %}
+
+    <h2>{{user.username}} ( {{user.firstName}} {{user.lastName}} )</h2><br>
+{% endfor %}
+
+<br>
+<br>
+
+<h1><b>Reactions:</b></h1>
+{% for user in react_data %}
+    {% if user.comment and user.emoji %}
+        <h2>{{user.username}}: {{user.comment}} {{user.emoji}} </h2>
+
+    {% elif user.comment %}
+        <h2>{{user.username}}: {{user.comment}} </h2>
+
+    {% else %}
+        <h2>{{user.username}}: {{user.emoji}} </h2>
+
+    {% endif %}
+{% endfor %}
+
+
+<br>
+<br>
+<a href="/home">Go Home</a>
+
+</body>
+
+
+</html>

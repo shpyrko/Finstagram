@@ -6,9 +6,9 @@ import mysql.connector
 import base64
 from mysql.connector import Error
 
-# Finished "Adding Friend Groups", "View visible photos", "Posting a photo"
-#TODO View further photo info
+# Finished "Adding Friend Groups", "View visible photos", "Posting a photo", "View further photo info"
 #TODO Manage follows
+#TODO if comment or empji is none, don't display
 
 SALT='cs3083'
 #Initialize the app from Flask
@@ -43,14 +43,14 @@ def register():
 def loginAuth():
     #grabs information from the forms
     username = request.form['username']
-    password = request.form['password'] + SALT
-    hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    password = request.form['password'] # + SALT
+    # hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
 
     #cursor used to send queries
     cursor = conn.cursor()
     #executes query
     query = 'SELECT * FROM Person WHERE username = %s and password = %s'
-    cursor.execute(query, (username, hashed_password))
+    cursor.execute(query, (username, password))
     #stores the results in a variable
     data = cursor.fetchone()
     #use fetchall() if you are expecting more than 1 data row
@@ -102,10 +102,13 @@ def registerAuth():
 def home():
     user = session['username']
     cursor = conn.cursor()
-    query1 = 'SELECT firstName, lastName, pId, filePath, postingDate FROM Photo NATURAL JOIN Person NATURAL JOIN SharedWith JOIN BelongTo ON ' \
-            '(BelongTo.groupName = SharedWith.groupName) WHERE BelongTo.username = %s UNION ' \
-            '(SELECT firstName, lastName, pID, filePath, postingDate FROM Photo NATURAL JOIN Person WHERE poster = %s) ORDER BY postingDate Desc '
-    cursor.execute(query1, (user, user))
+    query1 = 'SELECT DISTINCT photo.pId, filePath, postingDate FROM Photo JOIN SharedWith ON (Photo.pID = SharedWith.pID) ' \
+        'WHERE SharedWith.groupCreator IN (SELECT BelongTo.groupCreator FROM BelongTo JOIN Person ON ' \
+        'BelongTo.username = Person.username WHERE Person.username= %s ) UNION ' \
+        'SELECT DISTINCT pID, filePath, postingDate FROM Person JOIN Follow ON (follower = %s) JOIN Photo ' \
+        'ON (Photo.poster = Follow.followee) WHERE followStatus = 1  UNION SELECT pID, filePath, postingDate ' \
+        'FROM Photo JOIN Person ON (Person.username = Photo.poster) WHERE poster = %s ORDER BY postingDate Desc '
+    cursor.execute(query1, (user, user, user))
     data = cursor.fetchall()
     for photo in data:
         image = str(base64.b64encode(photo['filePath']).decode('utf-8'))
@@ -157,17 +160,30 @@ def select_blogger():
     cursor.execute(query)
     data = cursor.fetchall()
     cursor.close()
-    return render_template('select_blogger.html', user_list=data)
+    return render_template('manage_follows.html', user_list=data)
 
-@app.route('/show_posts', methods=["GET", "POST"])
-def show_posts():
-    poster = request.args['poster']
+@app.route('/tags_and_reacts/<pId>', methods=["GET", "POST"])
+def tags_and_reacts(pId):
     cursor = conn.cursor()
-    query = 'SELECT ts, blog_post FROM blog WHERE username = %s ORDER BY ts DESC'
-    cursor.execute(query, poster)
-    data = cursor.fetchall()
+    query1 = 'SELECT firstName, lastName FROM Photo JOIN Person ON (Photo.poster = Person.username) WHERE pID = %s'
+    cursor.execute(query1, pId)
+    poster = cursor.fetchall()
+    print(poster)
+
+    # Get the tagged users
+    query2 = 'SELECT username, firstName, lastName FROM Tag NATURAL JOIN Person WHERE pID = %s AND tagStatus = 1'
+    cursor.execute(query2, pId)
+    tag_data = cursor.fetchall()
+    print(tag_data)
+
+    # Get the names and reactions of users
+    query3 = "SELECT username, comment, emoji FROM ReactTo WHERE pID = %s"
+    cursor.execute(query3, pId)
+    react_data = cursor.fetchall()
+    print(react_data)
+
     cursor.close()
-    return render_template('show_posts.html', poster_name=poster, posts=data)
+    return render_template('tags_and_reacts.html', poster=poster, tag_data=tag_data, react_data=react_data)
 
 @app.route('/logout')
 def logout():
@@ -206,7 +222,7 @@ def friend_group_confirmation():
         cursor.execute(ins, (group_name, group_owner, group_owner))
         conn.commit()
         cursor.close()
-        return render_template('home.html')
+        return redirect(url_for('home'))
 
 @app.route('/selectGroupsAuth', methods=["GET", "POST"])
 def select_groups():
@@ -226,7 +242,12 @@ def select_groups():
     cursor.close()
     return redirect(url_for('home'))
 
-
+@app.route('/manage_follows')
+def manage_follows():
+    username = session['username']
+    cursor = conn.cursor()
+    # Get pending follow requests
+    query =
 
 def convertToBinaryData(filename):
     # Convert digital data to binary format
