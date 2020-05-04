@@ -41,14 +41,14 @@ def register():
 def loginAuth():
     #grabs information from the forms
     username = request.form['username']
-    password = request.form['password'] # + SALT
-    # hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
+    password = request.form['password'] + SALT
+    hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
 
     #cursor used to send queries
     cursor = conn.cursor()
     #executes query
     query = 'SELECT * FROM Person WHERE username = %s and password = %s'
-    cursor.execute(query, (username, password))
+    cursor.execute(query, (username, hashed_password))
     #stores the results in a variable
     data = cursor.fetchone()
     #use fetchall() if you are expecting more than 1 data row
