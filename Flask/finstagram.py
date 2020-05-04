@@ -6,9 +6,7 @@ import mysql.connector
 import base64
 from mysql.connector import Error
 
-# Finished "Adding Friend Groups", "View visible photos", "Posting a photo", "View further photo info"
-#TODO Manage follows
-#TODO if comment or empji is none, don't display
+# Finished "Adding Friend Groups", "View visible photos", "Posting a photo", "View further photo info", "Manage follows"
 
 SALT='cs3083'
 #Initialize the app from Flask
@@ -168,19 +166,16 @@ def tags_and_reacts(pId):
     query1 = 'SELECT firstName, lastName FROM Photo JOIN Person ON (Photo.poster = Person.username) WHERE pID = %s'
     cursor.execute(query1, pId)
     poster = cursor.fetchall()
-    print(poster)
 
     # Get the tagged users
     query2 = 'SELECT username, firstName, lastName FROM Tag NATURAL JOIN Person WHERE pID = %s AND tagStatus = 1'
     cursor.execute(query2, pId)
     tag_data = cursor.fetchall()
-    print(tag_data)
 
     # Get the names and reactions of users
     query3 = "SELECT username, comment, emoji FROM ReactTo WHERE pID = %s"
     cursor.execute(query3, pId)
     react_data = cursor.fetchall()
-    print(react_data)
 
     cursor.close()
     return render_template('tags_and_reacts.html', poster=poster, tag_data=tag_data, react_data=react_data)
@@ -247,7 +242,38 @@ def manage_follows():
     username = session['username']
     cursor = conn.cursor()
     # Get pending follow requests
-    query =
+    query = 'SELECT follower FROM Follow WHERE followee = %s AND followStatus = 0'
+    cursor.execute(query, username)
+    pending_requests = cursor.fetchall()
+    return render_template('manage_follows.html', pending_requests=pending_requests)
+
+@app.route('/accept_request/<follower>')
+def accept_request(follower):
+    username = session['username']
+    cursor = conn.cursor()
+    # Get pending follow requests
+    query = 'UPDATE Follow SET followStatus = 1 WHERE followee = %s AND follower = %s'
+    cursor.execute(query, (username, follower))
+    pending_requests = cursor.fetchall()
+    return redirect(url_for('manage_follows'))
+
+@app.route('/delete_request/<follower>')
+def delete_request(follower):
+    username = session['username']
+    cursor = conn.cursor()
+    # Get pending follow requests
+    query = 'DELETE FROM Follow WHERE followee = %s AND follower = %s'
+    cursor.execute(query, (username, follower))
+    return redirect(url_for('manage_follows'))
+
+@app.route('/send_request')
+def send_request():
+    username = session['username']
+    followee = request.form("follow_search")
+    cursor = conn.cursor()
+    query = "INSERT INTO Follow VALUES (%s, %s, 0)"
+    cursor.execute(query, (username, followee))
+    return redirect(url_for('manage_follows'))
 
 def convertToBinaryData(filename):
     # Convert digital data to binary format
