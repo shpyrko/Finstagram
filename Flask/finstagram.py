@@ -104,7 +104,7 @@ def home():
         'WHERE SharedWith.groupCreator IN (SELECT BelongTo.groupCreator FROM BelongTo JOIN Person ON ' \
         'BelongTo.username = Person.username WHERE Person.username= %s ) UNION ' \
         'SELECT DISTINCT pID, filePath, postingDate FROM Person JOIN Follow ON (follower = %s) JOIN Photo ' \
-        'ON (Photo.poster = Follow.followee) WHERE followStatus = 1  UNION SELECT pID, filePath, postingDate ' \
+        'ON (Photo.poster = Follow.followee) WHERE followStatus = 1 AND allFollowers = 1 UNION SELECT pID, filePath, postingDate ' \
         'FROM Photo JOIN Person ON (Person.username = Photo.poster) WHERE poster = %s ORDER BY postingDate Desc '
     cursor.execute(query1, (user, user, user))
     data = cursor.fetchall()
