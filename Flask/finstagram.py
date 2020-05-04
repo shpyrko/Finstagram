@@ -2,12 +2,9 @@
 from flask import Flask, render_template, request, session, url_for, redirect
 import pymysql.cursors
 import hashlib
-import mysql.connector
 import base64
-from mysql.connector import Error
 
 # Finished "Adding Friend Groups", "View visible photos", "Posting a photo", "View further photo info", "Manage follows"
-# TODO fix accept request, maybe add multiple groups option, handle error of requesting follow again
 SALT='cs3083'
 #Initialize the app from Flask
 app = Flask(__name__)
@@ -41,7 +38,7 @@ def register():
 def loginAuth():
     #grabs information from the forms
     username = request.form['username']
-    password = request.form['password'] # + SALT
+    password = request.form['password'] + SALT
     hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
 
     #cursor used to send queries
@@ -147,19 +144,6 @@ def post():
     else:
         return redirect(url_for("home"))
 
-@app.route('/select_blogger')
-def select_blogger():
-    #check that user is logged in
-    #username = session['username']
-    #should throw exception if username not found
-    
-    cursor = conn.cursor()
-    query = 'SELECT DISTINCT username FROM Person'
-    cursor.execute(query)
-    data = cursor.fetchall()
-    cursor.close()
-    return render_template('manage_follows.html', user_list=data)
-
 @app.route('/tags_and_reacts/<pId>', methods=["GET", "POST"])
 def tags_and_reacts(pId):
     cursor = conn.cursor()
@@ -255,6 +239,7 @@ def accept_request(follower):
 
     query = 'UPDATE Follow SET followStatus = 1 WHERE followee = %s AND follower = %s'
     cursor.execute(query, (username, follower))
+    conn.commit()
     cursor.close()
     return redirect(url_for('manage_follows'))
 
@@ -264,6 +249,7 @@ def delete_request(follower):
     cursor = conn.cursor()
     query = 'DELETE FROM Follow WHERE followee = %s AND follower = %s'
     cursor.execute(query, (username, follower))
+    conn.commit()
     cursor.close()
     return redirect(url_for('manage_follows'))
 
@@ -274,6 +260,7 @@ def send_request():
     cursor = conn.cursor()
     query = "INSERT INTO Follow (follower, followee, followStatus) VALUES (%s, %s, 0)"
     cursor.execute(query, (username, followee))
+    conn.commit()
     cursor.close()
     return redirect(url_for('manage_follows'))
 
