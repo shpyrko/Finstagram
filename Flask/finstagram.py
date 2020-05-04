@@ -7,7 +7,7 @@ import base64
 from mysql.connector import Error
 
 # Finished "Adding Friend Groups", "View visible photos", "Posting a photo", "View further photo info", "Manage follows"
-
+# TODO fix accept request, maybe add multiple groups option, handle error of requesting follow again
 SALT='cs3083'
 #Initialize the app from Flask
 app = Flask(__name__)
@@ -41,14 +41,14 @@ def register():
 def loginAuth():
     #grabs information from the forms
     username = request.form['username']
-    password = request.form['password'] + SALT
+    password = request.form['password'] # + SALT
     hashed_password = hashlib.sha256(password.encode('utf-8')).hexdigest()
 
     #cursor used to send queries
     cursor = conn.cursor()
     #executes query
     query = 'SELECT * FROM Person WHERE username = %s and password = %s'
-    cursor.execute(query, (username, hashed_password))
+    cursor.execute(query, (username, password))
     #stores the results in a variable
     data = cursor.fetchone()
     #use fetchall() if you are expecting more than 1 data row
@@ -245,34 +245,36 @@ def manage_follows():
     query = 'SELECT follower FROM Follow WHERE followee = %s AND followStatus = 0'
     cursor.execute(query, username)
     pending_requests = cursor.fetchall()
+    cursor.close()
     return render_template('manage_follows.html', pending_requests=pending_requests)
 
 @app.route('/accept_request/<follower>')
 def accept_request(follower):
     username = session['username']
     cursor = conn.cursor()
-    # Get pending follow requests
+
     query = 'UPDATE Follow SET followStatus = 1 WHERE followee = %s AND follower = %s'
     cursor.execute(query, (username, follower))
-    pending_requests = cursor.fetchall()
+    cursor.close()
     return redirect(url_for('manage_follows'))
 
 @app.route('/delete_request/<follower>')
 def delete_request(follower):
     username = session['username']
     cursor = conn.cursor()
-    # Get pending follow requests
     query = 'DELETE FROM Follow WHERE followee = %s AND follower = %s'
     cursor.execute(query, (username, follower))
+    cursor.close()
     return redirect(url_for('manage_follows'))
 
-@app.route('/send_request')
+@app.route('/send_request', methods=['GET', 'POST'])
 def send_request():
     username = session['username']
-    followee = request.form("follow_search")
+    followee = request.form['followSearch']
     cursor = conn.cursor()
-    query = "INSERT INTO Follow VALUES (%s, %s, 0)"
+    query = "INSERT INTO Follow (follower, followee, followStatus) VALUES (%s, %s, 0)"
     cursor.execute(query, (username, followee))
+    cursor.close()
     return redirect(url_for('manage_follows'))
 
 def convertToBinaryData(filename):

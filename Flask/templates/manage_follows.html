@@ -8,15 +8,15 @@
 	{% for open_request in pending_requests %}
 		<h2>{{open_request.follower}}</h2>
 		<button><a href="accept_request/{{open_request.follower}}">Accept</a></button>
-		<button><a href="decline_request/{{open_request.follower}}">Decline</a></button>
+		<button><a href="delete_request/{{open_request.follower}}">Decline</a></button>
 		<br>
 	{% endfor %}
 {% endif %}
 <br>
 <br>
-<form action="/send_request">
-<input type="text" name="follow_search">
-<button type="submit" value="Send Follow Request">Send Follow Request</button>
+<form action="/send_request" method="POST">
+	<input type="text" name="followSearch" />
+	<input type="submit" value="Send Follow Request"/>
 </form>
 
 <a href="/home">Go Back</a>
